@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -81,12 +82,15 @@ func (a *App) loadCities() {
 }
 
 func (a *App) printWeatherInfo() {
+	wg := &sync.WaitGroup{}
 	for _, city := range a.repo.GetItems() {
 		go func(c domain.City) {
 			// throttle calls to weather API?
 			a.slower <- true
+			wg.Add(1)
 			defer func() {
 				<-a.slower
+				wg.Done()
 			}()
 			forecast := a.getWeatherForCity(c.Lat, c.Lng)
 
@@ -97,6 +101,8 @@ func (a *App) printWeatherInfo() {
 			a.repo.UpdateForecast(c.Id, forecast.Forecast)
 		}(city)
 	}
+
+	wg.Wait()
 }
 
 func (a *App) getWeatherForCity(lat, lng float64) domain.ForecastResult {
