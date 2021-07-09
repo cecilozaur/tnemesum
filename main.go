@@ -33,22 +33,20 @@ func main() {
 	r := gin.Default()
 	r.GET("/ping", func(c *gin.Context) {
 		if muse.Healthy() {
-			c.JSON(http.StatusOK, gin.H{
-				"status": "OK",
-			})
+			c.JSON(http.StatusOK, "OK")
 		} else {
-			c.JSON(http.StatusBadGateway, gin.H{
-				"status": "KO",
-			})
+			c.JSON(http.StatusBadGateway, "KO")
 		}
 	})
 
-	r.GET("/forecast", func(c *gin.Context) {
-
-		c.JSON(http.StatusOK, gin.H{
-			"items": muse.GetAllCities(),
-		})
-	})
+	api := r.Group("/api")
+	{
+		api.GET("/cities", muse.GetAllCities)
+		api.GET("/cities/:cityId", muse.GetCity)
+		api.GET("/cities/:cityId/forecast", muse.GetCityForecast)
+		api.GET("/cities/:cityId/forecast/:day", muse.GetCityForecast)
+		api.POST("/cities/:cityId/forecast", muse.UpdateCityForecast)
+	}
 
 	log.Fatal(r.Run(fmt.Sprintf(":%d", listenPort)))
 }

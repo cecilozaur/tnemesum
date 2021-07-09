@@ -20,7 +20,7 @@ type App struct {
 	startTime time.Time
 	repo      repository.Repository
 
-	slower chan bool // barrier we'll use to throttle the number of concurrent request we do to the weather API
+	semaphore chan bool // barrier we'll use to throttle the number of concurrent request we do to the weather API
 }
 
 func New(config conf.Config) *App {
@@ -29,7 +29,7 @@ func New(config conf.Config) *App {
 		startTime: time.Now().UTC(),
 		status:    0,
 		repo:      repository.NewInMem(),
-		slower:    make(chan bool, 2), // TODO this should probably be in the config
+		semaphore: make(chan bool, config.APIConcurrentRequests),
 	}
 }
 
@@ -52,10 +52,6 @@ func (a *App) Pause() {
 
 func (a *App) Uptime() time.Duration {
 	return time.Since(a.startTime)
-}
-
-func (a *App) GetAllCities() []domain.City {
-	return a.repo.GetItems()
 }
 
 func (a *App) loadCities() {
@@ -86,10 +82,10 @@ func (a *App) printWeatherInfo() {
 	for _, city := range a.repo.GetItems() {
 		go func(c domain.City) {
 			// throttle calls to weather API?
-			a.slower <- true
+			a.semaphore <- true
 			wg.Add(1)
 			defer func() {
-				<-a.slower
+				<-a.semaphore
 				wg.Done()
 			}()
 			forecast := a.getWeatherForCity(c.Lat, c.Lng)
@@ -98,14 +94,25 @@ func (a *App) printWeatherInfo() {
 			if len(forecast.Forecast.ForecastDay) >= 2 {
 				log.Printf("Processed city %s | %s - %s", c.Name, forecast.Forecast.ForecastDay[0].Day.Condition.Text, forecast.Forecast.ForecastDay[1].Day.Condition.Text)
 			}
-			a.repo.UpdateForecast(c.Id, forecast.Forecast)
+
+			// build new forecast from retrieved data
+			forecastDTO := make(domain.Forecast, 0)
+			for _, f := range forecast.Forecast.ForecastDay {
+				newF := domain.ForecastDay{
+					Day:       f.Date,
+					Condition: f.Day.Condition.Text,
+				}
+				forecastDTO = append(forecastDTO, newF)
+			}
+
+			a.repo.UpdateForecast(c.Id, forecastDTO)
 		}(city)
 	}
 
 	wg.Wait()
 }
 
-func (a *App) getWeatherForCity(lat, lng float64) domain.ForecastResult {
+func (a *App) getWeatherForCity(lat, lng float64) ForecastResult {
 	url := fmt.Sprintf(a.cfg.WeatherAPIUrl, a.cfg.WeatherAPIKey, lat, lng)
 	result, err := http.Get(url)
 	if err != nil {
@@ -113,12 +120,12 @@ func (a *App) getWeatherForCity(lat, lng float64) domain.ForecastResult {
 	}
 	defer result.Body.Close()
 
-	f := domain.ForecastResult{}
 	body, err := ioutil.ReadAll(result.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	f := ForecastResult{}
 	err = json.Unmarshal(body, &f)
 	if err != nil {
 		log.Fatal(err)

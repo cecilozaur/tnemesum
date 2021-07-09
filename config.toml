@@ -1,3 +1,4 @@
 WeatherAPIUrl = "http://api.weatherapi.com/v1/forecast.json?key=%s&q=%f,%f&days=2"
 MusementAPIUrl = "https://api.musement.com/api/v3/cities"
 WeatherAPIKey = "e1746f93455741e6bf8151857210807"
+APIConcurrentRequests = 3
