@@ -33,7 +33,7 @@ Retrieves a city with weather information for all the dates.
 
 ### Get the forecast for a city
 ```
-GET /api/cities/{cityId}/forecast
+GET /api/forecast/{cityId}
 ```
 Retrieves the forecast for the `cityId` for the next 2 days
 
@@ -62,7 +62,7 @@ An object of the following format
 
 ### Get the forecast for a city
 ```
-GET /api/cities/{cityId}/forecast/{day}
+GET /api/forecast/{cityId}/{day}
 ```
 Retrieves the forecast for the `cityId` for the specified `day`
 
@@ -86,7 +86,7 @@ An object of the following format
 
 ### Set the forecast for a range of days or a single date for a given city.
 ```
-POST /api/cities/{cityId}/forecast
+POST /api/forecast/{cityId}
 ```
 Create or update the forecast in the city identified by `cityId`.
 #####Input JSON

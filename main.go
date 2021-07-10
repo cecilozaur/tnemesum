@@ -48,9 +48,9 @@ func main() {
 	{
 		api.GET("/cities", muse.GetAllCities)
 		api.GET("/cities/:cityId", muse.GetCity)
-		api.GET("/cities/:cityId/forecast", muse.GetCityForecast)
-		api.GET("/cities/:cityId/forecast/:day", muse.GetCityForecast)
-		api.POST("/cities/:cityId/forecast", muse.UpdateCityForecast)
+		api.GET("/forecast/:cityId/", muse.GetCityForecast)
+		api.GET("/forecast/:cityId/:day", muse.GetCityForecast)
+		api.POST("/forecast/:cityId", muse.UpdateCityForecast)
 	}
 
 	log.Fatal(r.Run(fmt.Sprintf(":%d", listenPort)))
