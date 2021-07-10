@@ -5,4 +5,5 @@ type Config struct {
 	MusementAPIUrl        string
 	WeatherAPIKey         string
 	APIConcurrentRequests int
+	MaxConcurrent         int
 }

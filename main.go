@@ -6,6 +6,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/cecilozaur/tnemesum/app"
 	"github.com/cecilozaur/tnemesum/conf"
+	"github.com/cecilozaur/tnemesum/middleware"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -31,6 +32,10 @@ func main() {
 	muse.SetHealthy()
 
 	r := gin.Default()
+
+	// use middlewares
+	r.Use(middleware.RateControl(cfg))
+
 	r.GET("/ping", func(c *gin.Context) {
 		if muse.Healthy() {
 			c.JSON(http.StatusOK, "OK")

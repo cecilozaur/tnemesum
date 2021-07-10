@@ -9,7 +9,14 @@ The project is a Go application. When the app runs it preloads all cities and we
 - Go
 
 ### Run with Docker
-
+```
+docker build -t tnemesum .
+docker run -it --rm -p 8000:8000 --name tnemesum-app tnemesum
+```
+or use the makefile
+```
+make run
+```
 
 ### API endpoint
 The API service runs on `localhost:8000`

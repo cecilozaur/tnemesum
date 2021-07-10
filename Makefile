@@ -8,4 +8,4 @@ clean:
 
 run:
 	docker build -t tnemesum .
-	docker run -it --rm --name tnemesum-api tnemesum
+	docker run -it --rm -p 8000:8000 --name tnemesum-api tnemesum
