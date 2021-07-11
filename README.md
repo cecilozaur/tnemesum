@@ -1,12 +1,13 @@
 # tnemesum
 
-###Alexandru Mihalcea
+**_Alexandru Mihalcea_**
 
 ### Project Overview
 The project is a Go application. When the app runs it preloads all cities and weather info from the two APIs and stores the items in an inmemory map
 ### Prerequisites
 
 - Go
+- Docker
 
 ### Run with Docker
 ```
@@ -33,11 +34,11 @@ Retrieves a city with weather information for all the dates.
 
 ### Get the forecast for a city
 ```
-GET /api/forecast/{cityId}
+GET /api/cities/{cityId}/forecast
 ```
-Retrieves the forecast for the `cityId` for the next 2 days
+Retrieves the forecast for the `cityId` for the next n loaded days (by default 2 days)
 
-#####Responses
+`Responses`
 An object of the following format
 ```
 {
@@ -60,13 +61,13 @@ An object of the following format
     - Returns 400 status code if the `cityId` parameter is not a number.
     - Returns 404 status code if the city `cityId` is not found.
 
-### Get the forecast for a city
+### Get the forecast for a city for a specific day
 ```
-GET /api/forecast/{cityId}/{day}
+GET /api/cities/{cityId}/forecast/{day}
 ```
 Retrieves the forecast for the `cityId` for the specified `day`
 
-#####Response
+`Response`
 An object of the following format
 ```
 {
@@ -86,10 +87,10 @@ An object of the following format
 
 ### Set the forecast for a range of days or a single date for a given city.
 ```
-POST /api/forecast/{cityId}
+POST /api/cities/{cityId}/forecast
 ```
 Create or update the forecast in the city identified by `cityId`.
-#####Input JSON
+`Input JSON`
 ```
 [
     {
@@ -103,7 +104,7 @@ Create or update the forecast in the city identified by `cityId`.
 ]
 ```
 
-#####Response codes
+`Response codes`
 
 - success
   Returns 204 (No content) status code along with a Location header for the updated resource.

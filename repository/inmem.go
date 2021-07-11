@@ -6,6 +6,11 @@ import (
 	"sync"
 )
 
+var (
+	emptyCity       = domain.City{}
+	errCityNotFound = errors.New("not found")
+)
+
 type InMemRepo struct {
 	items sync.Map
 }
@@ -29,10 +34,19 @@ func (m *InMemRepo) GetItems() []domain.City {
 func (m *InMemRepo) Get(key uint64) (domain.City, error) {
 	item, ok := m.items.Load(key)
 	if !ok {
-		return domain.City{}, errors.New("not found")
+		return emptyCity, errCityNotFound
 	}
 
 	return item.(domain.City), nil
+}
+
+func (m *InMemRepo) GetForecast(key uint64) (domain.Forecast, error) {
+	item, err := m.Get(key)
+	if err != nil {
+		return nil, err
+	}
+
+	return item.Forecast, nil
 }
 
 func (m *InMemRepo) Store(key uint64, item domain.City) {
@@ -50,13 +64,4 @@ func (m *InMemRepo) UpdateForecast(key uint64, forecast domain.Forecast) bool {
 	m.items.Store(key, item)
 
 	return true
-}
-
-func (m *InMemRepo) GetForecast(key uint64, days int) domain.Forecast {
-	item, err := m.Get(key)
-	if err != nil {
-		return domain.Forecast{}
-	}
-
-	return item.Forecast
 }

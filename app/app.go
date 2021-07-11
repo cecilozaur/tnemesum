@@ -33,9 +33,41 @@ func New(config conf.Config) *App {
 	}
 }
 
+// Run the function will initialize the repo by loading all city and forecast data and saving the info
+// inside the provided repository (in this case the inmem one)
 func (a *App) Run() {
-	a.loadCities()
-	a.printWeatherInfo()
+	var items []domain.City
+	var err error
+
+	for i := 0; i < 3; i++ {
+		items, err = a.loadCities()
+
+		if err == nil {
+			break
+		}
+
+		// wait 1 second between attempts?
+		time.Sleep(time.Second)
+	}
+
+	if err != nil || len(items) == 0 {
+		log.Fatal("unable to load cities from API")
+	}
+
+	// store items in repository
+	for _, item := range items {
+		a.repo.Store(item.Id, item)
+	}
+
+	a.loadAndStoreForecast()
+
+	// print forecast after loading
+	for _, city := range a.repo.GetItems() {
+		// only print the message if we know we got the forecast for at least 2 days
+		if len(city.Forecast) >= 2 {
+			log.Printf("Processed city %s | %s - %s", city.Name, city.Forecast[0].Condition, city.Forecast[1].Condition)
+		}
+	}
 }
 
 func (a *App) Healthy() bool {
@@ -54,30 +86,33 @@ func (a *App) Uptime() time.Duration {
 	return time.Since(a.startTime)
 }
 
-func (a *App) loadCities() {
+// loadCities loads all cities returned by API and returns a slice of items or an error is the API call failed
+func (a *App) loadCities() ([]domain.City, error) {
 	// get the list of cities from musement API
 	result, err := http.Get(a.cfg.MusementAPIUrl)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer result.Body.Close()
 
 	body, err := ioutil.ReadAll(result.Body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	items := make([]domain.City, 0)
 	err = json.Unmarshal(body, &items)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	for _, item := range items {
-		a.repo.Store(item.Id, item)
-	}
+	return items, nil
 }
 
-func (a *App) printWeatherInfo() {
+// loadAndStoreForecast will start a new goroutine for every city we have in the repository
+// and do a call to weatherapi API to get the forecast for the next 2 days
+// it will also save the info inside the repository for each associated city
+// the function uses a semaphore to limit the number of concurrent calls we make to the weatherapi API
+func (a *App) loadAndStoreForecast() {
 	wg := &sync.WaitGroup{}
 	for _, city := range a.repo.GetItems() {
 		go func(c domain.City) {
@@ -88,11 +123,21 @@ func (a *App) printWeatherInfo() {
 				<-a.semaphore
 				wg.Done()
 			}()
-			forecast := a.getWeatherForCity(c.Lat, c.Lng)
 
-			// only print the message if we know we got the forecast for at least 2 days
-			if len(forecast.Forecast.ForecastDay) >= 2 {
-				log.Printf("Processed city %s | %s - %s", c.Name, forecast.Forecast.ForecastDay[0].Day.Condition.Text, forecast.Forecast.ForecastDay[1].Day.Condition.Text)
+			var forecast *ForecastResult
+			var err error
+			for i := 0; i < 3; i++ {
+				forecast, err = a.getWeatherForCity(c.Lat, c.Lng)
+				if err == nil {
+					break
+				}
+
+				time.Sleep(time.Second)
+			}
+
+			if err != nil {
+				log.Println("unable to load forecast for city " + err.Error())
+				return
 			}
 
 			// build new forecast from retrieved data
@@ -112,24 +157,26 @@ func (a *App) printWeatherInfo() {
 	wg.Wait()
 }
 
-func (a *App) getWeatherForCity(lat, lng float64) ForecastResult {
+// getWeatherForCity does a GET request for a specific lat/lng combination
+// and loads the weather forecast for the next 2 days
+func (a *App) getWeatherForCity(lat, lng float64) (*ForecastResult, error) {
 	url := fmt.Sprintf(a.cfg.WeatherAPIUrl, a.cfg.WeatherAPIKey, lat, lng)
 	result, err := http.Get(url)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer result.Body.Close()
 
 	body, err := ioutil.ReadAll(result.Body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	f := ForecastResult{}
 	err = json.Unmarshal(body, &f)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return f
+	return &f, nil
 }
