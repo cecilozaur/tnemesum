@@ -115,18 +115,18 @@ func (a *App) UpdateCityForecast(c *gin.Context) {
 
 	_, err = a.repo.Get(uint64(cityId))
 	if err != nil {
-		c.JSON(http.StatusNotFound, "")
+		c.JSON(http.StatusNotFound, invalidCity)
 		return
 	}
 
 	if !a.repo.UpdateForecast(uint64(cityId), req) {
 		c.JSON(http.StatusBadGateway, gin.H{
-			"error": "unable to update city: " + c.Param("cityId"),
+			"error": "unable to create/update forecast for city: " + c.Param("cityId"),
 		})
 
 		return
 	}
 
 	c.Header("Location", fmt.Sprintf("/api/cities/%d/forecast", cityId))
-	c.JSON(http.StatusNoContent, "")
+	c.JSON(http.StatusCreated, "")
 }

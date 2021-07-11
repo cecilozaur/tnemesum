@@ -107,7 +107,7 @@ Create or update the forecast in the city identified by `cityId`.
 `Response codes`
 
 - success
-  Returns 204 (No content) status code along with a Location header for the updated resource.
+  Returns 201 (Created) status code along with a Location header for the created/updated resource.
 - error
     - Returns 400 status code if the provided JSON input is invalid, or the cityId parameter is not a number
     - Returns 404 status code if the city is not found.
